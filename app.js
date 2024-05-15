@@ -8,46 +8,57 @@ const maxRetries = 10
 let retriedTime = 0
 
 process.stdin.resume()
+process.stdin.on('data', handleUserInput)
 
-process.stdin.on('data', (data) => {
+function handleUserInput(data) {
     const message = data.toString().trim()
     if (message === '/quit') {
-        isQuit = true
-        conn.end()
-        process.stdin.pause()
-        console.log('quitring...')
+        quitConnection()
     } else {
         conn.write(data)
     }
-})
+}
 
-;(function connect() {
-    function reconnect() {
-        if (retriedTime >= maxRetries) {
-            throw new Error('Max retries have been execcded.')
-        }
-        retriedTime++
-        setTimeout(connect, retryInterval)
-        console.log(`Retry ${retriedTime} Times`)
-    }
+function quitConnection() {
+    isQuit = true
+    conn.end()
+    process.stdin.pause()
+    console.log('Quitting...')
+}
 
+function connect() {
     conn = net.createConnection(port)
 
-    conn.on('connect', () => {
-        retriedTime = 0
-        console.log('Connected to server\n')
-    })
-    
-    conn.on('error', (err) => {
-        console.log('Error in connection:', err)
-    })
-    
-    conn.on('close', () => {
-        if (!isQuit) {
-            console.log('Connection got closed\n')
-            reconnect()
-        }
-    })
+    conn.on('connect', onConnect)
+    conn.on('error', onError)
+    conn.on('close', onClose)
 
     conn.pipe(process.stdout, { end: false })
-}())
+}
+
+function reconnect() {
+    if (retriedTime >= maxRetries) {
+        throw new Error('Max retries have been execcded.')
+    }
+    retriedTime++
+    setTimeout(connect, retryInterval)
+    console.log(`Retry ${retriedTime} Times`)
+}
+
+function onConnect() {
+    retriedTime = 0
+    console.log('Connected to server\n')
+}
+
+function onError(err) {
+    console.log('Error in connection:', err)
+}
+
+function onClose() {
+    if (!isQuit) {
+        console.log('Connection got closed\n')
+        reconnect()
+    }
+}
+
+connect()
