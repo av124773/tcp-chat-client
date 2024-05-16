@@ -1,11 +1,13 @@
 const net = require('net')
-const port = 4000
 let conn = null
 let isQuit = false
 
 const retryInterval = 3000
 const maxRetries = 10
 let retriedTime = 0
+
+const host = process.argv[2] || 'localhost'
+const port = process.argv[3] || 4000
 
 process.stdin.resume()
 process.stdin.on('data', handleUserInput)
@@ -27,7 +29,7 @@ function quitConnection() {
 }
 
 function connect() {
-    conn = net.createConnection(port)
+    conn = net.createConnection({ port, host })
 
     conn.on('connect', onConnect)
     conn.on('error', onError)
